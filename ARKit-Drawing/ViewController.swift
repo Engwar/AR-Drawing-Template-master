@@ -10,11 +10,11 @@ class ViewController: UIViewController {
     
     var selectedNode: SCNNode?
     
-    var placedNodes = [SCNNode]()
-    var planeNodes = [SCNNode]()
+    var placedNodes = [SCNNode]() //массив размещенных объектов
+    var planeNodes = [SCNNode]() // массив поверхностей, которые мы будем находить
     
-    var showPlanes = false {
-        didSet {
+    var showPlanes = false {  //свойство для сокрытия поверхности
+        didSet {             // наблюдатель. если где то у нас поменялось значение свойства то мы проходим по всем поверхностям и пряем их или показываем
             for node in planeNodes {
                 node.isHidden = !showPlanes
             }
@@ -47,7 +47,9 @@ class ViewController: UIViewController {
     }
 
     func reloadConfiguration(removeAnchors: Bool = true) {
+        //определяем только горизонтальные поверхности
         configuration.planeDetection = .horizontal
+        // определяем картинку (можно в группу добавлять несколько картинок)
         configuration.detectionImages = (objectMode == .image) ? ARReferenceImage.referenceImages(inGroupNamed: "AR Resources", bundle: nil) : nil
         
         let options: ARSession.RunOptions
@@ -159,6 +161,7 @@ extension ViewController {
 
 //MARK: Placement Methods
 extension ViewController {
+    // Добавляем узел перед нами путем перемножения матриц и делаем отступ в 20 см.
     func addNodeInFront(_ node: SCNNode) {
         guard let frame = sceneView.session.currentFrame else {return}
         
@@ -183,10 +186,11 @@ extension ViewController {
         }
     }
     
+    //этот метод размещает узлы(ноды)
     func addNodeToSceneRoot(_ node: SCNNode) {
         let cloneNode = node.clone()
         sceneView.scene.rootNode.addChildNode(cloneNode)
-        placedNodes.append(cloneNode)
+        placedNodes.append(cloneNode) //здесь мы добавляем эти ноды в массив
     }
 
 }
@@ -200,6 +204,8 @@ extension ViewController: ARSCNViewDelegate {
  //       sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin]
     }
     
+    //в этой функции мы разделяем определение поверхности и картинки двумя методами с одним названием, в первом случае
+    // for anchor - image, во втором plane
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         if let anchor = anchor as? ARImageAnchor {
             nodeAdded(node, for: anchor)
@@ -208,14 +214,15 @@ extension ViewController: ARSCNViewDelegate {
         }
     }
     
+    // в этой функции мы меняем размеры найденной поверхности
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        guard let anchor = anchor as? ARPlaneAnchor,
-            let node = node.childNodes.first,
-            let plane = node.geometry as? SCNPlane
+        guard let anchor = anchor as? ARPlaneAnchor, //делаем проверку что Энкор это ПлейнЭнкор и присваиваем наследника ARAnchor -> ARPlaneAnchor чтобы получить его свойства
+            let node = node.childNodes.first, // проверяем что у ноды есть хотя бы один наследник и присваиваем первого наследника Ноды
+            let plane = node.geometry as? SCNPlane // далее берем этого наследника и проверяем его геометрию что она ЭССИЭНПлейн
             else { return }
         
-        node.position = SCNVector3(anchor.center.x, 0, anchor.center.z)
-        plane.width = CGFloat(anchor.extent.x)
+        node.position = SCNVector3(anchor.center.x, 0, anchor.center.z) //меняем позицию после проверок
+        plane.width = CGFloat(anchor.extent.x)   //меняем размеры
         plane.height = CGFloat(anchor.extent.z)
     }
     
@@ -224,6 +231,8 @@ extension ViewController: ARSCNViewDelegate {
             addNode(selectedNode, parentNode: node)
         }
     }
+    //функция которой передаются два параметра: узел и куда добавлять узел,
+    //которая добавляет узел к родительскому узлу и в массив узлов
     func addNode(_ node: SCNNode, parentNode: SCNNode){
         let cloneNode = node.clone()
         parentNode.addChildNode(cloneNode)
@@ -237,6 +246,7 @@ extension ViewController: ARSCNViewDelegate {
         planeNodes.append(floor)
     }
     
+    //создаем поверхность для привязки к ней ноды(объекта)
     func createFloor(anchor: ARPlaneAnchor) -> SCNNode {
         let node = SCNNode()
         let extent = anchor.extent
@@ -245,6 +255,6 @@ extension ViewController: ARSCNViewDelegate {
         
         node.eulerAngles.x = -.pi / 2
         node.opacity = 0.25
-        return SCNNode()
+        return node
     }
 }
